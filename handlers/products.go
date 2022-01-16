@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/gorilla/mux"
 	"go-microservices/data"
 	"log"
@@ -91,7 +92,18 @@ func (products Products) MiddlewareProductValidation(next http.Handler) http.Han
 		// Serialize the JSON to product
 		err := prod.FromJSON(r.Body)
 		if err != nil {
-			http.Error(rw, "Unable to unmarshal to JSON", http.StatusBadRequest)
+			products.logger.Println("[ERROR] deserializing product", err)
+			http.Error(rw, "Error reading product", http.StatusBadRequest)
+			return
+		}
+
+		// Validate the product
+		err = prod.Validate()
+
+		if err != nil {
+			products.logger.Println("[ERROR] validating product", err)
+			http.Error(rw, fmt.Sprintf("Error validating product: %s", err), http.StatusBadRequest)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
